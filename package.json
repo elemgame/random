@@ -1,0 +1,37 @@
+{
+  "name": "elemgame-random",
+  "version": "1.0.0-rc.1",
+  "description": "A simple and fair way to randomly select one item from a list",
+  "scripts": {
+    "build": "locklift build",
+    "local-net": "everdev se reset && sleep 5",
+    "deploy-local": "npm run local-net && locklift run --network local --script scripts/1-deploy-random.ts",
+    "deploy-test-random": "locklift run --disable-build --network test --script scripts/1-deploy-random.ts",
+    "verify-test": "locklift verify --network test",
+    "deploy-test": "npm run deploy-test-random && npm run verify-test",
+    "deploy-main-random": "locklift run --disable-build --network main --script scripts/1-deploy-random.ts",
+    "verify-main": "locklift verify --network main",
+    "deploy-main": "npm run deploy-main-random && npm run verify-main",
+    "test": "npm run local-net && locklift test --network test"
+  },
+  "author": "Ever Guild",
+  "license": "AGPL",
+  "overrides": {
+    "nekoton-wasm": "npm:nekoton-wasm-locklift@1.20.2"
+  },
+  "devDependencies": {
+    "@broxus/locklift-verifier": "^1.0.5",
+    "@types/chai": "^4.3.16",
+    "@types/mocha": "^10.0.6",
+    "@types/node": "^20.12.12",
+    "chai": "^4.4.1",
+    "dotenv": "^16.0.3",
+    "eslint": "^9.3.0",
+    "everdev": "^1.7.0",
+    "everscale-standalone-client": "^2.1.26",
+    "locklift": "^2.9.4",
+    "mocha-logger": "^1.0.8",
+    "ts-mocha": "^10.0.0",
+    "typescript": "^4.7.4"
+  }
+}

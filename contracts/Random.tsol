@@ -1,0 +1,113 @@
+// SPDX-License-Identifier: AGPL-3.0-or-later
+
+pragma ever-solidity >= 0.70.0;
+
+/// @title Random
+/// @custom:security-contact https://github.com/elemgame/random/security/advisories/new
+/// @author Ever Guild
+/// @notice A simple and fair way to randomly select one item from a list
+
+library MsgFlag {
+    // Pay transfer fees separately from the message value
+    // Sender wants to pay transfer fees separately (from account balance instead of message balance)
+    uint8 constant PayGasSeparately = 1;
+    // Ignore any errors arising while processing this message during the action phase
+    // If there are some errors during the action phase it should be ignored
+    // (don't fail transaction e.g. if message balance is greater than remaining balance, or it has invalid address)
+    uint8 constant IgnoreErrors = 2;
+    // Current account must be destroyed if its resulting balance is zero
+    // (usually combined with flag MsgFlag.SendRemainingBalance)
+    uint8 constant SendDestroyIfZero = 32;
+    // Carry all the remaining value of the inbound message in addition to the value initially indicated in the new message
+    // used for messages that carry all the remaining value of the inbound message in addition to the value initially indicated in the new message
+    uint8 constant RemainingValue = 64;
+    // Carry all the remaining balance of the current smart contract instead of the value originally indicated in the message
+    // Message will carry all the remaining balance
+    uint8 constant RemainingBalance = 128;
+}
+
+library Error {
+    uint8 constant sender_is_not_operator = 100;
+    uint8 constant deadline_expired = 101;
+    uint8 constant deadline_has_not_arrived = 102;
+    uint8 constant result_exist = 103;
+    uint8 constant minimum_two_candidates_required = 104;
+}
+
+struct Config {
+    uint32 deadline;
+    address operator;
+}
+
+contract Random {
+    uint64 static nonce;
+
+    address public operator;
+    uint public total;
+    uint32 public deadline;
+    string public winner;
+    mapping(uint => string) list;
+
+    event NewSessionRandom(uint total, uint32 deadline, address operator);
+    event AddItemRandom(uint total, string item);
+    event ResultRandom(string winner);
+
+    modifier onlyOperator {
+        require(operator == msg.sender, Error.sender_is_not_operator);
+        _;
+    }
+
+    constructor(string[] data, Config config) {
+        tvm.accept();
+        operator = config.operator;
+        deadline = config.deadline;
+        total = 0;
+        for (string item : data) {
+            list[total] = item;
+            total += 1;
+        }
+        emit NewSessionRandom(total, deadline, operator);
+    }
+
+    receive() external {
+        if (winner != "") {
+            msg.sender.transfer({
+                value: 0,
+                flag: MsgFlag.RemainingBalance + MsgFlag.IgnoreErrors,
+                bounce: false
+            });
+        }
+    }
+
+    function getItem(uint n) view public returns (string item) {
+        item = list[n];
+    }
+
+    function addItem(string item) external onlyOperator {
+        require(block.timestamp < deadline, Error.deadline_expired);
+        list[total] = item;
+        total += 1;
+        emit AddItemRandom(total, item);
+        msg.sender.transfer({
+            value: 0,
+            flag: MsgFlag.RemainingBalance + MsgFlag.IgnoreErrors,
+            bounce: false
+        });
+    }
+
+    function claim() external onlyOperator {
+        require(block.timestamp > deadline, Error.deadline_has_not_arrived);
+        require(winner == "", Error.result_exist);
+        require(total > 1, Error.minimum_two_candidates_required);
+
+        rnd.shuffle();
+        uint n = rnd.next(total);
+        winner = list[n];
+        emit ResultRandom(winner);
+        msg.sender.transfer({
+            value: 0,
+            flag: MsgFlag.RemainingBalance + MsgFlag.IgnoreErrors,
+            bounce: false
+        });
+    }
+}
