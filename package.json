@@ -11,7 +11,7 @@
     "deploy-test": "npm run deploy-test-random && npm run verify-test",
     "deploy-main-random": "locklift run --disable-build --network main --script scripts/1-deploy-random.ts",
     "verify-main": "locklift verify --network main",
-    "deploy-main": "npm run deploy-main-random && npm run verify-main",
+    "deploy-main": "npm run deploy-main-random",
     "test": "npm run local-net && locklift test --network test"
   },
   "author": "Ever Guild",
